@@ -1,0 +1,176 @@
+<Window x:Class="Reveal.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Reveal" Width="540" Height="760" MinWidth="480" MinHeight="520"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource Bg0}"
+        UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Ideal"
+        Icon="pack://application:,,,/Assets/reveal.ico">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="26,22,26,26">
+
+            <!-- Header -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Image Source="pack://application:,,,/Assets/logo.png" Width="44" Height="44" RenderOptions.BitmapScalingMode="HighQuality" />
+                <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="REVEAL" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold" />
+                    <TextBlock Text="Windows Vocabulary Companion" Style="{StaticResource Caption}" Margin="0,1,0,0" />
+                </StackPanel>
+                <Border x:Name="StatusPill" Grid.Column="2" CornerRadius="12" Padding="11,5" VerticalAlignment="Center" Background="{StaticResource Bg2}">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Text3}" VerticalAlignment="Center" />
+                        <TextBlock x:Name="StatusLabel" Text="En pausa" FontSize="12" Margin="8,0,0,0" Foreground="{StaticResource Text2}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Capture -->
+            <Border Style="{StaticResource Card}" Margin="0,22,0,0">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Captura de selección" FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock Text="Con la captura activa, cualquier palabra o frase que selecciones en cualquier aplicación se muestra al instante con su traducción."
+                                       Style="{StaticResource Body}" Margin="0,5,16,0" />
+                        </StackPanel>
+                        <ToggleButton x:Name="CaptureToggle" Grid.Column="1" Style="{StaticResource SwitchToggle}" VerticalAlignment="Top" />
+                    </Grid>
+                    <TextBlock x:Name="CaptureHint" Style="{StaticResource Caption}" Margin="0,12,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Offline translation pack -->
+            <Border x:Name="PackCard" Style="{StaticResource Card}" Margin="0,12,0,0">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Traducción sin conexión" FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock x:Name="PackText" Style="{StaticResource Body}" Margin="0,5,16,0" />
+                        </StackPanel>
+                        <Button x:Name="PackButton" Grid.Column="1" Style="{StaticResource PrimaryButton}" VerticalAlignment="Top" Content="Descargar" />
+                    </Grid>
+                    <ProgressBar x:Name="PackProgress" Height="4" Margin="0,14,0,0" Visibility="Collapsed" Minimum="0" Maximum="1"
+                                 Background="{StaticResource Bg3}" Foreground="{StaticResource Accent}" BorderThickness="0" />
+                </StackPanel>
+            </Border>
+
+            <!-- Vocabulary document -->
+            <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Text="Documento de vocabulario" FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="Cada palabra que guardes se añade al final de este archivo .docx. Nunca se sobrescribe nada." Style="{StaticResource Body}" Margin="0,5,0,0" />
+                    <Border Background="{StaticResource Bg2}" CornerRadius="9" Padding="12,10" Margin="0,14,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Data="{StaticResource IconFolder}" Stroke="{StaticResource Text3}" StrokeThickness="1.6" Width="16" Height="16" Stretch="Uniform"
+                                  StrokeLineJoin="Round" VerticalAlignment="Center" />
+                            <TextBlock x:Name="DocPath" Grid.Column="1" Margin="10,0,0,0" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <TextBlock x:Name="DocStatus" Style="{StaticResource Caption}" Margin="2,8,0,0" TextWrapping="Wrap" />
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button x:Name="ChooseDocButton" Content="Elegir documento…" Margin="0,0,8,0" Style="{StaticResource BaseButton}" />
+                        <Button x:Name="NewDocButton" Content="Crear nuevo…" Margin="0,0,8,0" Style="{StaticResource BaseButton}" />
+                        <Button x:Name="OpenDocButton" Content="Abrir" Style="{StaticResource GhostButton}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Voices -->
+            <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Text="Pronunciación" FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="Voces de Windows instaladas en este equipo (sin coste, sin conexión)." Style="{StaticResource Body}" Margin="0,5,0,0" />
+
+                    <TextBlock Text="AMERICAN ENGLISH" Style="{StaticResource SectionLabel}" Margin="0,16,0,6" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="AmericanCombo" />
+                        <Button x:Name="AmericanTest" Grid.Column="1" Style="{StaticResource BaseButton}" Margin="8,0,0,0" Width="42" Padding="0" Height="34" ToolTip="Probar voz">
+                            <Path Data="{StaticResource IconSpeaker}" Stroke="{StaticResource Text1}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round" Width="16" Height="16" Stretch="Uniform" />
+                        </Button>
+                    </Grid>
+
+                    <TextBlock Text="BRITISH ENGLISH" Style="{StaticResource SectionLabel}" Margin="0,14,0,6" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="BritishCombo" />
+                        <Button x:Name="BritishTest" Grid.Column="1" Style="{StaticResource BaseButton}" Margin="8,0,0,0" Width="42" Padding="0" Height="34" ToolTip="Probar voz">
+                            <Path Data="{StaticResource IconSpeaker}" Stroke="{StaticResource Text1}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round" Width="16" Height="16" Stretch="Uniform" />
+                        </Button>
+                    </Grid>
+                    <StackPanel x:Name="VoiceHelp" Margin="0,12,0,0" Visibility="Collapsed">
+                        <TextBlock x:Name="VoiceHelpText" Style="{StaticResource Caption}" TextWrapping="Wrap" Foreground="{StaticResource Warning}" />
+                        <Button x:Name="OpenSpeechSettings" Content="Abrir ajustes de voz de Windows" Style="{StaticResource BaseButton}" HorizontalAlignment="Left" Margin="0,10,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Hotkeys -->
+            <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Text="Atajos de teclado" FontSize="15" FontWeight="SemiBold" />
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Iniciar captura" Style="{StaticResource Body}" VerticalAlignment="Center" />
+                        <Border Grid.Column="1" Background="{StaticResource Bg2}" CornerRadius="8" Padding="12,8" Margin="0,0,8,0">
+                            <TextBlock x:Name="StartKeyText" FontFamily="Consolas" FontSize="12.5" />
+                        </Border>
+                        <Button x:Name="StartKeyButton" Grid.Column="2" Content="Cambiar" Style="{StaticResource BaseButton}" />
+                    </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Detener captura" Style="{StaticResource Body}" VerticalAlignment="Center" />
+                        <Border Grid.Column="1" Background="{StaticResource Bg2}" CornerRadius="8" Padding="12,8" Margin="0,0,8,0">
+                            <TextBlock x:Name="StopKeyText" FontFamily="Consolas" FontSize="12.5" />
+                        </Border>
+                        <Button x:Name="StopKeyButton" Grid.Column="2" Content="Cambiar" Style="{StaticResource BaseButton}" />
+                    </Grid>
+                    <TextBlock x:Name="HotkeyMessage" Style="{StaticResource Caption}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Footer -->
+            <Grid Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="SettingsButton" Content="Ajustes" Style="{StaticResource BaseButton}" Padding="18,8" />
+                <Button x:Name="QuitButton" Grid.Column="2" Content="Salir de Reveal" Style="{StaticResource DangerGhostButton}" Padding="14,8" />
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

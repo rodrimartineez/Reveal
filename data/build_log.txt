@@ -1,0 +1,19 @@
+21:59:12 freq: en 400,000 es 400,000
+21:59:30 kaikki 200,000 lines (18s)
+21:59:36 kaikki 400,000 lines (24s)
+21:59:40 kaikki 600,000 lines (28s)
+21:59:44 kaikki 800,000 lines (32s)
+21:59:48 kaikki 1,000,000 lines (36s)
+21:59:51 kaikki 1,200,000 lines (39s)
+21:59:54 kaikki 1,400,000 lines (43s)
+21:59:56 kaikki done: 1,492,836 lines, 682,601 headwords, 717,993 forms
+21:59:56 parsing WordNet
+21:59:59 WordNet: 135,916 lemma/pos pairs
+21:59:59 tatoeba pairs: 144,215
+21:59:59 training language id
+22:00:06 langid grams: 6,243
+22:00:09 tatoeba examples for 20,116 keys
+22:00:19 en rows: 175,933
+22:00:23 forms: 710,869
+22:00:24 es rows: 64,445
+22:00:26 done -> C:\Documentos\Proyectos\Reveal\data\build\lexicon.db (50.1 MB)

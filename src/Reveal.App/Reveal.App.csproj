@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Reveal.App</RootNamespace>
+    <AssemblyName>Reveal</AssemblyName>
+    <ApplicationIcon>Assets\reveal.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <LangVersion>latest</LangVersion>
+    <Version>1.0.0</Version>
+    <Product>Reveal</Product>
+    <Company>Reveal</Company>
+    <Description>Reveal - Windows Vocabulary Companion</Description>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <StartupObject>Reveal.App.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Reveal.Core\Reveal.Core.csproj" />
+    <ProjectReference Include="..\Reveal.Platform\Reveal.Platform.csproj" />
+  </ItemGroup>
+
+  <!-- Offline lexicon + language model (built by tools/lexicon/build_lexicon.py) -->
+  <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\..\..\data\build\lexicon.db')">
+    <Content Include="..\..\data\build\lexicon.db" Link="Data\lexicon.db" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\data\build\langid.json" Link="Data\langid.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\*.png" />
+    <Resource Include="Assets\*.ico" />
+  </ItemGroup>
+
+</Project>
