@@ -28,10 +28,13 @@ public partial class OverlayWindow : Window
 {
     private const double CardMargin = 32;
     private const double Gap = 10;
+    private const double ReserveHeight = 400; // DIP: the tallest ordinary card (headword, meaning, voices, synonyms, example, footer)
 
     private IntPtr _hwnd;
     private Rect _anchor;
     private bool _placedOnce;
+    private OverlaySide _side = OverlaySide.Below;
+    private bool _keepSide;
 
     public event Action<EnglishVariant>? SpeakRequested;
 
@@ -227,6 +230,7 @@ public partial class OverlayWindow : Window
     public void Present(Rect anchorPx)
     {
         _anchor = anchorPx;
+        _keepSide = false; // a new selection: choose the side again
         var firstShow = !IsVisible;
         if (firstShow)
         {
@@ -280,7 +284,11 @@ public partial class OverlayWindow : Window
         if (Math.Abs(Height - windowHeightDip) > 0.5) Height = windowHeightDip;
 
         var cardPx = new Size(Math.Round(cardWidth * scale), Math.Round(cardHeight * scale));
-        var topLeft = OverlayPlacement.Place(_anchor, cardPx.Width, cardPx.Height, monitor.WorkArea, Gap * scale);
+        // While the card grows (translation arrives), stay on the side chosen at first; choose it with room for a full card.
+        var topLeft = OverlayPlacement.Place(_anchor, cardPx.Width, cardPx.Height, monitor.WorkArea, Gap * scale,
+            out var side, _keepSide ? _side : null, reserve: ReserveHeight * scale);
+        _side = side;
+        _keepSide = true;
         var margin = CardMargin * scale;
 
         NativeMethods.SetWindowPos(

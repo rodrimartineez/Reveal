@@ -39,6 +39,7 @@ public partial class App : Application
         var background = _args.Any(a => a.Equals("--background", StringComparison.OrdinalIgnoreCase));
         _host = new AppHost(this);
         _host.Initialize(background);
+        if (_args.Any(a => a.Equals("--settings", StringComparison.OrdinalIgnoreCase))) _host.ShowSettings();
 
         _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.ShowEventName);
         _showListener = new Thread(() =>

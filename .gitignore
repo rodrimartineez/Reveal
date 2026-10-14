@@ -10,3 +10,5 @@ publish/
 dist/
 *.log
 .claude/
+
+data/*.txt

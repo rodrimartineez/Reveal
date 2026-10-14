@@ -48,7 +48,7 @@ public sealed class MarianModel : IDisposable
 
         using var options = new SessionOptions
         {
-            GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL,
+            GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL, // DISABLE_ALL saves ~60 MB per model but is ~5x slower
             ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
             IntraOpNumThreads = threads,
             InterOpNumThreads = 1,

@@ -14,6 +14,22 @@ public static class StartupRegistration
         return key?.GetValue(ValueName) is string;
     }
 
+    /// <summary>Path of the executable currently registered to start with Windows, or null.</summary>
+    public static string? RegisteredExecutable()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(RunKey);
+        if (key?.GetValue(ValueName) is not string command) return null;
+        command = command.Trim();
+        if (command.StartsWith('"'))
+        {
+            var end = command.IndexOf('"', 1);
+            return end > 1 ? command[1..end] : null;
+        }
+
+        var space = command.IndexOf(' ');
+        return space > 0 ? command[..space] : command;
+    }
+
     public static void SetEnabled(bool enabled, string exePath)
     {
         using var key = Registry.CurrentUser.CreateSubKey(RunKey);

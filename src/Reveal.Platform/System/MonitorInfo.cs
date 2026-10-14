@@ -39,28 +39,44 @@ public sealed record MonitorGeometry(Rect Bounds, Rect WorkArea, double ScaleX, 
     }
 }
 
+public enum OverlaySide
+{
+    Below,
+    Above,
+}
+
 /// <summary>Pure placement maths, kept separate so it can be unit tested for any monitor layout / scaling.</summary>
 public static class OverlayPlacement
 {
     /// <summary>
     /// Computes the top-left corner (physical pixels) for a window of <paramref name="width"/> x <paramref name="height"/>
     /// pixels placed next to <paramref name="anchor"/>: below it if there is room, else above, always inside the work area.
+    /// <paramref name="reserve"/> is the height the card may grow to (translations arrive later): the side is chosen so it
+    /// won't have to jump to the other side afterwards. <paramref name="forced"/> keeps the side already in use.
     /// </summary>
-    public static Point Place(Rect anchor, double width, double height, Rect workArea, double gap)
+    public static Point Place(Rect anchor, double width, double height, Rect workArea, double gap,
+        out OverlaySide side, OverlaySide? forced = null, double reserve = 0)
     {
+        var need = Math.Max(height, reserve);
+        var roomBelow = workArea.Bottom - (anchor.Bottom + gap);
+        var roomAbove = anchor.Top - gap - workArea.Top;
+
+        side = forced ?? (roomBelow >= need ? OverlaySide.Below
+            : roomAbove >= need ? OverlaySide.Above
+            : roomBelow >= roomAbove ? OverlaySide.Below : OverlaySide.Above);
+
         var x = anchor.Left;
-        double y;
+        var y = side == OverlaySide.Below ? anchor.Bottom + gap : anchor.Top - gap - height;
 
-        var below = anchor.Bottom + gap;
-        var above = anchor.Top - gap - height;
-        if (below + height <= workArea.Bottom) y = below;
-        else if (above >= workArea.Top) y = above;
-        else y = Math.Max(workArea.Top, workArea.Bottom - height); // neither fits: pin to the bottom edge
-
+        // If it still doesn't fit, slide it along the edge instead of leaving the screen.
+        if (y + height > workArea.Bottom) y = workArea.Bottom - height;
+        if (y < workArea.Top) y = workArea.Top;
         if (x + width > workArea.Right) x = workArea.Right - width;
         if (x < workArea.Left) x = workArea.Left;
-        if (y < workArea.Top) y = workArea.Top;
 
         return new Point(Math.Round(x), Math.Round(y));
     }
+
+    public static Point Place(Rect anchor, double width, double height, Rect workArea, double gap) =>
+        Place(anchor, width, height, workArea, gap, out _);
 }

@@ -79,6 +79,8 @@ public sealed class AppHost : IDisposable
             Log.Error("Could not open the lexicon", ex);
         }
 
+        SyncStartupRegistration();
+
         Marian = new MarianTranslator();
         var translation = new TranslationService(Marian, new OnlineTranslator(() => Settings.Current.AllowOnlineFallback));
         var detector = new LanguageDetector(Lexicon, AppPaths.LangIdFile);
@@ -162,6 +164,8 @@ public sealed class AppHost : IDisposable
 
         CaptureActive = true;
         _controller?.RefreshVoices();
+        // The English -> Spanish model is loaded in the background so the first lookup is instant; the other direction
+        // loads on first use (keeps memory low: each model takes ~140 MB while loaded).
         _ = Marian.WarmupAsync(Reveal.Core.Models.Lang.English, Reveal.Core.Models.Lang.Spanish);
         Log.Info("Capture started");
         if (!silent)
@@ -318,6 +322,24 @@ public sealed class AppHost : IDisposable
             UpdateTray();
             StateChanged?.Invoke();
         });
+    }
+
+    /// <summary>The Run registry value is the source of truth (the installer can create it too); keep the path current.</summary>
+    private void SyncStartupRegistration()
+    {
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (exe is null) return;
+            var registered = StartupRegistration.IsEnabled();
+            if (registered != Settings.Current.StartWithWindows) Settings.Update(s => s.StartWithWindows = registered);
+            // Refresh the entry only if it points at something that no longer exists (moved / reinstalled elsewhere).
+            if (registered && StartupRegistration.RegisteredExecutable() is { } old && !File.Exists(old)) StartupRegistration.SetEnabled(true, exe);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Could not sync the startup registration", ex);
+        }
     }
 
     private void OnPowerModeChanged(object? sender, Microsoft.Win32.PowerModeChangedEventArgs e)

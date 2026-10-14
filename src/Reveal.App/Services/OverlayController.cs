@@ -222,7 +222,9 @@ internal sealed class OverlayController
         _overlay.SetPlaying(variant);
         try
         {
+            var sw = Stopwatch.StartNew();
             await _speech.SpeakAsync(result.Headword, voice, cts.Token);
+            Log.Info($"spoke {variant} with '{voice.Name}' ({voice.Language}) in {sw.ElapsedMilliseconds} ms");
         }
         catch (OperationCanceledException)
         {

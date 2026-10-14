@@ -19,7 +19,7 @@ public sealed class MarianTranslator : ITranslator, IDisposable
 
     public MarianTranslator(TimeSpan? idleUnload = null, int? threads = null)
     {
-        _idleUnload = idleUnload ?? TimeSpan.FromMinutes(3);
+        _idleUnload = idleUnload ?? TimeSpan.FromMinutes(15);
         _threads = threads ?? Math.Clamp(Environment.ProcessorCount / 2, 2, 6);
         _idleTimer = new Timer(_ => UnloadIfIdle(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
     }

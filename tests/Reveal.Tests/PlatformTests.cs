@@ -29,6 +29,23 @@ public sealed class PlatformTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void Placement_chooses_the_side_with_room_for_the_card_to_grow_and_keeps_it()
+    {
+        var work = new Rect(0, 0, 1920, 1020);
+        var anchor = new Rect(300, 560, 100, 24); // 436 px free below, 548 above
+
+        // Small card now, but it may grow to 500 px: start above so it never has to jump later.
+        var first = OverlayPlacement.Place(anchor, 425, 250, work, 12, out var side, reserve: 500);
+        Assert.Equal(OverlaySide.Above, side);
+        Assert.Equal(560 - 12 - 250, first.Y);
+
+        // It grew: still above, anchored by its bottom edge.
+        var grown = OverlayPlacement.Place(anchor, 425, 420, work, 12, out var side2, forced: side, reserve: 500);
+        Assert.Equal(OverlaySide.Above, side2);
+        Assert.Equal(560 - 12 - 420, grown.Y);
+    }
+
+    [Fact]
     public void Placement_is_clamped_to_the_right_edge()
     {
         var work = new Rect(0, 0, 1920, 1020);
@@ -88,6 +105,43 @@ public sealed class PlatformTests(ITestOutputHelper output)
         Assert.Equal("Ctrl+Shift+T", g.ToString());
         Assert.True(HotkeyGesture.TryParse("Shift+Alt+Ctrl+F5", out var h));
         Assert.Equal("Ctrl+Alt+Shift+F5", h.ToString());
+    }
+
+    [Fact]
+    public void Hotkey_already_owned_by_another_registration_falls_back_to_the_keyboard_hook()
+    {
+        RunSta(() =>
+        {
+            using var hotkeys = new GlobalHotkeys();
+            Assert.True(HotkeyGesture.TryParse("Ctrl+Alt+Shift+F11", out var gesture));
+
+            var first = hotkeys.Register(gesture, () => { }, out var r1);
+            Assert.True(r1.Success);
+            Assert.Null(r1.Warning);
+            Assert.NotEqual(0, first);
+
+            // Same combination again (as if another program owned it): still works, with an explanatory warning.
+            var second = hotkeys.Register(gesture, () => { }, out var r2);
+            Assert.True(r2.Success);
+            Assert.NotNull(r2.Warning);
+            Assert.NotEqual(0, second);
+
+            hotkeys.Unregister(second);
+            hotkeys.Unregister(first);
+        });
+    }
+
+    [Fact]
+    public void Invalid_hotkey_is_rejected_with_a_message()
+    {
+        RunSta(() =>
+        {
+            using var hotkeys = new GlobalHotkeys();
+            var id = hotkeys.Register(default, () => { }, out var r);
+            Assert.Equal(0, id);
+            Assert.False(r.Success);
+            Assert.False(string.IsNullOrEmpty(r.Error));
+        });
     }
 
     // ---------- speech ----------
