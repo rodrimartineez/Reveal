@@ -29,33 +29,33 @@ function New-RevealBitmap([int]$size, [bool]$active) {
     $borderPen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(40, 255, 255, 255)), ([Math]::Max(1.0, $s / 128))
     $g.DrawPath($borderPen, $path)
 
-    # almond eye
-    $cx = $s / 2; $cy = $s / 2
-    $eye = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $left = New-Object System.Drawing.PointF (0.17 * $s), $cy
-    $right = New-Object System.Drawing.PointF (0.83 * $s), $cy
-    $eye.AddBezier($left, (New-Object System.Drawing.PointF (0.34 * $s), (0.22 * $s)), (New-Object System.Drawing.PointF (0.66 * $s), (0.22 * $s)), $right)
-    $eye.AddBezier($right, (New-Object System.Drawing.PointF (0.66 * $s), (0.78 * $s)), (New-Object System.Drawing.PointF (0.34 * $s), (0.78 * $s)), $left)
-    $eye.CloseFigure()
-    $lineAlpha = if ($active) { 235 } else { 150 }
-    $pen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb($lineAlpha, 245, 247, 250)), ([Math]::Max(1.2, 0.058 * $s))
-    $pen.LineJoin = 'Round'
-    $g.DrawPath($pen, $eye)
-
-    # iris
-    $ir = 0.165 * $s
-    $irisRect = New-Object System.Drawing.RectangleF ($cx - $ir), ($cy - $ir), (2 * $ir), (2 * $ir)
-    if ($active) {
-        $iris = New-Object System.Drawing.Drawing2D.LinearGradientBrush $irisRect, ([System.Drawing.Color]::FromArgb(255, 150, 182, 255)), ([System.Drawing.Color]::FromArgb(255, 86, 118, 255)), 60
-    } else {
-        $iris = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 112, 118, 130))
+    # prism V: two faces of light meeting at the bottom point (coordinates on a 100-unit grid)
+    $k = $s / 100.0
+    function Face([double[]]$xy) {
+        $pts = for ($i = 0; $i -lt $xy.Length; $i += 2) { New-Object System.Drawing.PointF ($xy[$i] * $k), ($xy[$i + 1] * $k) }
+        $fp = New-Object System.Drawing.Drawing2D.GraphicsPath
+        $fp.AddPolygon([System.Drawing.PointF[]]$pts)
+        return $fp
     }
-    $g.FillEllipse($iris, $irisRect)
-    $pr = 0.062 * $s
-    $g.FillEllipse((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 12, 13, 17))), ($cx - $pr), ($cy - $pr), (2 * $pr), (2 * $pr))
-    if ($active -and $size -ge 32) {
-        $hr = 0.032 * $s
-        $g.FillEllipse((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(230, 255, 255, 255))), ($cx - 0.07 * $s - $hr), ($cy - 0.07 * $s - $hr), (2 * $hr), (2 * $hr))
+    if ($active) {
+        $lightTop = [System.Drawing.Color]::FromArgb(255, 196, 212, 255); $lightBottom = [System.Drawing.Color]::FromArgb(255, 150, 176, 255)
+        $darkTop = [System.Drawing.Color]::FromArgb(255, 110, 140, 255); $darkBottom = [System.Drawing.Color]::FromArgb(255, 70, 100, 230)
+    } else {
+        $lightTop = [System.Drawing.Color]::FromArgb(255, 176, 180, 190); $lightBottom = [System.Drawing.Color]::FromArgb(255, 150, 154, 164)
+        $darkTop = [System.Drawing.Color]::FromArgb(255, 112, 118, 130); $darkBottom = [System.Drawing.Color]::FromArgb(255, 92, 97, 108)
+    }
+    $round = [Math]::Max(1.0, 0.045 * $s)   # stroke in the face colour rounds every corner
+    $faces = @(
+        @{ Path = (Face @(64, 25, 78, 25, 52, 76, 45, 62)); Top = $darkTop; Bottom = $darkBottom },
+        @{ Path = (Face @(22, 25, 37, 25, 53, 61, 48, 76)); Top = $lightTop; Bottom = $lightBottom }
+    )
+    foreach ($f in $faces) {
+        $box = New-Object System.Drawing.RectangleF 0, (0.2 * $s), $s, (0.6 * $s)
+        $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush $box, $f.Top, $f.Bottom, 90
+        $edge = New-Object System.Drawing.Pen $brush, $round
+        $edge.LineJoin = 'Round'
+        $g.FillPath($brush, $f.Path)
+        $g.DrawPath($edge, $f.Path)
     }
 
     $g.Dispose()
