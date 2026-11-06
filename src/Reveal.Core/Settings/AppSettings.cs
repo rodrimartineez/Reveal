@@ -43,5 +43,8 @@ public sealed class AppSettings
 
     public double SpeechRate { get; set; } = 1.0;
 
+    /// <summary>Interface appearance: "dark" (default) or "light".</summary>
+    public string Theme { get; set; } = "dark";
+
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
 }

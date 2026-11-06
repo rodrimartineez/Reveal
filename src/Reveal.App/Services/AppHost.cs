@@ -50,6 +50,9 @@ public sealed class AppHost : IDisposable
 
     public SpeechPlayer Speech { get; } = new();
 
+    /// <summary>Recent lookups of this run (memory only).</summary>
+    public LookupHistory History { get; } = new();
+
     public bool CaptureActive { get; private set; }
 
     public bool IsExiting { get; private set; }
@@ -90,7 +93,7 @@ public sealed class AppHost : IDisposable
         _overlay = new OverlayWindow();
         _overlay.EnsureHandle();
         _toast = new ToastWindow();
-        _controller = new OverlayController(_app.Dispatcher, _overlay, _toast, Lookup, Vocabulary, Speech, Settings, () => ShowMain(pickDocument: true));
+        _controller = new OverlayController(_app.Dispatcher, _overlay, _toast, Lookup, Vocabulary, Speech, Settings, () => ShowMain(pickDocument: true), History);
 
         _hotkeys = new GlobalHotkeys();
         RegisterHotkeys();
@@ -271,6 +274,26 @@ public sealed class AppHost : IDisposable
         _main.Topmost = false;
         _main.Focus();
         if (pickDocument) _main.PromptForDocument();
+    }
+
+    /// <summary>Saves a word from the recent-lookups list (same entry the card would save).</summary>
+    public async Task<string?> SaveFromHistoryAsync(HistoryItem item)
+    {
+        if (string.IsNullOrWhiteSpace(Vocabulary.DocumentPath))
+        {
+            ShowMain(pickDocument: true);
+            return "Elige primero un documento de vocabulario (.docx).";
+        }
+
+        item.Saving = true;
+        History.NotifyChanged();
+        var r = item.Result;
+        var result = await Vocabulary.SaveAsync(new VocabularyEntry(r.Headword, r.Translations, r.Example, r.Synonyms));
+        Log.Info($"save from history -> {result.Outcome}{(result.ViaWord ? " (via Word)" : "")}");
+        item.Saving = false;
+        if (result.Outcome is SaveOutcome.Added or SaveOutcome.Duplicate) item.Saved = true;
+        History.NotifyChanged();
+        return result.Outcome is SaveOutcome.Added or SaveOutcome.Duplicate ? null : result.Message;
     }
 
     public void ShowSettings()

@@ -6,15 +6,15 @@
         ShowInTaskbar="False" Topmost="True" ShowActivated="False" ResizeMode="NoResize"
         Focusable="False" UseLayoutRounding="True" SnapsToDevicePixels="True" IsHitTestVisible="False">
     <Grid Margin="28">
-        <Border x:Name="Pill" Background="#FC111317" BorderBrush="#26FFFFFF" BorderThickness="1" CornerRadius="14" Padding="16,11,18,11">
+        <Border x:Name="Pill" Background="{DynamicResource OverlayBg}" BorderBrush="{DynamicResource OverlayEdge}" BorderThickness="1" CornerRadius="18" Padding="16,11,18,11">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="22" ShadowDepth="5" Direction="270" Opacity="0.5" Color="#000000" />
             </Border.Effect>
             <StackPanel Orientation="Horizontal">
-                <Ellipse x:Name="DotMark" Width="9" Height="9" Fill="{StaticResource Success}" VerticalAlignment="Center" Margin="0,1,11,0" />
+                <Ellipse x:Name="DotMark" Width="9" Height="9" Fill="{DynamicResource Success}" VerticalAlignment="Center" Margin="0,1,11,0" />
                 <StackPanel>
-                    <TextBlock x:Name="TitleText" FontSize="13.5" FontWeight="SemiBold" Foreground="{StaticResource Text1}" />
-                    <TextBlock x:Name="SubtitleText" FontSize="12" Foreground="{StaticResource Text3}" Margin="0,2,0,0" Visibility="Collapsed" />
+                    <TextBlock x:Name="TitleText" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Text1}" />
+                    <TextBlock x:Name="SubtitleText" FontSize="12" Foreground="{DynamicResource Text3}" Margin="0,2,0,0" Visibility="Collapsed" />
                 </StackPanel>
             </StackPanel>
         </Border>

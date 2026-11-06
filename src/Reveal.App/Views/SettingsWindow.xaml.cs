@@ -1,17 +1,20 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Interop;
 using Reveal.Core.Settings;
 using Reveal.Core.Translation;
 using Reveal.App.Services;
-using Reveal.Platform.Native;
 
 namespace Reveal.App.Views;
 
 public partial class SettingsWindow : Window
 {
     private sealed record AutoCloseChoice(int Seconds, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    private sealed record ThemeChoice(string Id, string Label)
     {
         public override string ToString() => Label;
     }
@@ -25,17 +28,10 @@ public partial class SettingsWindow : Window
     {
         _host = host;
         InitializeComponent();
-        SourceInitialized += (_, _) =>
-        {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            var dark = 1;
-            NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
-            var caption = 0x00120F0E;
-            NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_CAPTION_COLOR, ref caption, sizeof(int));
-            var text = 0x00F1EEED;
-            NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_TEXT_COLOR, ref text, sizeof(int));
-        };
+        SourceInitialized += (_, _) => ThemeManager.ApplyTitleBar(this);
 
+        ThemeCombo.Items.Add(new ThemeChoice(ThemeManager.Dark, "Oscuro"));
+        ThemeCombo.Items.Add(new ThemeChoice(ThemeManager.Light, "Claro"));
         AutoCloseCombo.Items.Add(new AutoCloseChoice(0, "Nunca (se cierra al hacer clic fuera o con Esc)"));
         foreach (var s in new[] { 8, 15, 30, 60 }) AutoCloseCombo.Items.Add(new AutoCloseChoice(s, $"A los {s} segundos"));
 
@@ -47,6 +43,12 @@ public partial class SettingsWindow : Window
         KeyboardSelection.Click += (_, _) => SaveAndRestartCapture(s => s.CaptureKeyboardSelection = KeyboardSelection.IsChecked == true);
         ClipboardFallback.Click += (_, _) => SaveAndRestartCapture(s => s.UseClipboardFallback = ClipboardFallback.IsChecked == true);
         OnlineFallback.Click += (_, _) => Save(s => s.AllowOnlineFallback = OnlineFallback.IsChecked == true);
+        ThemeCombo.SelectionChanged += (_, _) =>
+        {
+            if (_loading || ThemeCombo.SelectedItem is not ThemeChoice t) return;
+            Save(s => s.Theme = t.Id);
+            ThemeManager.Apply(t.Id);
+        };
         AutoCloseCombo.SelectionChanged += (_, _) =>
         {
             if (!_loading && AutoCloseCombo.SelectedItem is AutoCloseChoice c) Save(s => s.OverlayAutoCloseSeconds = c.Seconds);
@@ -91,6 +93,7 @@ public partial class SettingsWindow : Window
             OnlineFallback.IsChecked = s.AllowOnlineFallback;
             AutoCloseCombo.SelectedItem = AutoCloseCombo.Items.OfType<AutoCloseChoice>().FirstOrDefault(c => c.Seconds == s.OverlayAutoCloseSeconds)
                                           ?? AutoCloseCombo.Items[0];
+            ThemeCombo.SelectedItem = ThemeCombo.Items.OfType<ThemeChoice>().FirstOrDefault(c => c.Id == s.Theme) ?? ThemeCombo.Items[0];
             RateSlider.Value = s.SpeechRate;
             RateText.Text = $"{s.SpeechRate:0.0}×";
             RefreshPack();

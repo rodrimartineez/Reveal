@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
 using Microsoft.Win32;
 using Reveal.App.Services;
@@ -10,7 +9,6 @@ using Reveal.Core.Models;
 using Reveal.Core.Translation;
 using Reveal.Core.Vocabulary;
 using Reveal.Platform.Hotkeys;
-using Reveal.Platform.Native;
 using Reveal.Platform.Speech;
 
 namespace Reveal.App.Views;
@@ -32,7 +30,7 @@ public partial class MainWindow : Window
     {
         _host = host;
         InitializeComponent();
-        SourceInitialized += (_, _) => ApplyDarkTitleBar();
+        SourceInitialized += (_, _) => ThemeManager.ApplyTitleBar(this);
 
         CaptureToggle.Click += (_, _) =>
         {
@@ -59,6 +57,10 @@ public partial class MainWindow : Window
 
         PackButton.Click += (_, _) => _ = DownloadPackAsync();
 
+        HistoryClear.Click += (_, _) => _host.History.Clear();
+        _host.History.Changed += RefreshHistory;
+        Closed += (_, _) => _host.History.Changed -= RefreshHistory;
+
         _host.StateChanged += Refresh;
         Closed += (_, _) => _host.StateChanged -= Refresh;
         Activated += (_, _) =>
@@ -69,19 +71,7 @@ public partial class MainWindow : Window
 
         RefreshVoices();
         Refresh();
-    }
-
-    private void ApplyDarkTitleBar()
-    {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        var dark = 1;
-        NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
-        var caption = 0x00120F0E; // COLORREF 0x00BBGGRR of #0E0F12
-        NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_CAPTION_COLOR, ref caption, sizeof(int));
-        var text = 0x00F1EEED;
-        NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_TEXT_COLOR, ref text, sizeof(int));
-        var border = 0x00362E2A;
-        NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_BORDER_COLOR, ref border, sizeof(int));
+        RefreshHistory();
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -116,17 +106,18 @@ public partial class MainWindow : Window
             StatusLabel.Text = active ? "Activo" : "En pausa";
             StatusLabel.Foreground = active ? (Brush)FindResource("Text1") : (Brush)FindResource("Text2");
             StatusDot.Fill = active ? (Brush)FindResource("Success") : (Brush)FindResource("Text3");
+            HeroTitle.Text = active ? "Reveal está activo" : "Reveal está en pausa";
+            HeroTitle.Foreground = active ? (Brush)FindResource("Text1") : (Brush)FindResource("Text2");
             CaptureHint.Text = active
-                ? $"Reveal está escuchando tus selecciones.  {settings.StopHotkey} para detener."
-                : $"Pulsa {settings.StartHotkey} (o el interruptor) para empezar a capturar.";
+                ? "Selecciona una palabra o frase en cualquier aplicación y verás su traducción al instante."
+                : $"Pulsa el botón o {settings.StartHotkey} para empezar a capturar tus selecciones.";
 
             StartKeyText.Text = settings.StartHotkey;
             StopKeyText.Text = settings.StopHotkey;
             if (_capturing is null)
             {
-                HotkeyMessage.Foreground = (Brush)FindResource(_host.HotkeyProblem is null && _host.HotkeyNotice is null ? "Text3" : "Warning");
-                HotkeyMessage.Text = _host.HotkeyProblem ?? _host.HotkeyNotice
-                                     ?? "Nota: Ctrl+Shift+T es también «reabrir pestaña cerrada» en los navegadores; mientras Reveal está abierto, ese atajo es de Reveal. Puedes cambiarlo aquí.";
+                // Only problems and notices take space; the general note lives in the chip tooltip.
+                ShowHotkeyMessage("Warning", _host.HotkeyProblem ?? _host.HotkeyNotice);
             }
 
             // document
@@ -168,6 +159,73 @@ public partial class MainWindow : Window
         {
             _refreshing = false;
         }
+    }
+
+    // ------------------------------------------------------------------ recent lookups
+
+    private const int HistoryRows = 4;
+
+    private void RefreshHistory()
+    {
+        var items = _host.History.Items;
+        HistoryList.Children.Clear();
+        foreach (var item in items.Take(HistoryRows)) HistoryList.Children.Add(BuildHistoryRow(item));
+        HistoryEmpty.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        HistoryClear.Visibility = items.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        if (items.Count == 0) HistoryMessage.Visibility = Visibility.Collapsed;
+    }
+
+    private UIElement BuildHistoryRow(HistoryItem item)
+    {
+        var grid = new System.Windows.Controls.Grid();
+        grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = GridLength.Auto });
+
+        var texts = new System.Windows.Controls.StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        var head = new System.Windows.Controls.TextBlock { Text = item.Headword, FontSize = 13, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
+        var trans = new System.Windows.Controls.TextBlock { Text = item.Translation, FontSize = 11.5, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 1, 0, 0) };
+        trans.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "Text3");
+        texts.Children.Add(head);
+        if (item.Translation.Length > 0) texts.Children.Add(trans);
+        grid.Children.Add(texts);
+
+        UIElement action;
+        if (item.Saved || item.Saving)
+        {
+            var done = new System.Windows.Controls.TextBlock
+            {
+                Text = item.Saving ? "Guardando…" : "✓ Guardada", FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 4, 0),
+            };
+            done.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, item.Saving ? "Text3" : "Success");
+            action = done;
+        }
+        else
+        {
+            var save = new System.Windows.Controls.Button
+            {
+                Content = "Guardar", Padding = new Thickness(11, 5, 11, 5), FontSize = 11.5, Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center, ToolTip = "Añadir a tu documento de vocabulario",
+            };
+            save.SetResourceReference(StyleProperty, "BaseButton");
+            save.Click += async (_, _) =>
+            {
+                var problem = await _host.SaveFromHistoryAsync(item);
+                HistoryMessage.Text = problem ?? "";
+                HistoryMessage.Visibility = problem is null ? Visibility.Collapsed : Visibility.Visible;
+            };
+            action = save;
+        }
+
+        System.Windows.Controls.Grid.SetColumn(action, 1);
+        grid.Children.Add(action);
+        var row = new System.Windows.Controls.Border
+        {
+            Child = grid, CornerRadius = new CornerRadius(10), Padding = new Thickness(8, 6, 8, 6), Background = Brushes.Transparent,
+            ToolTip = item.Result.Example,
+        };
+        row.MouseEnter += (_, _) => row.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "Bg2");
+        row.MouseLeave += (_, _) => row.Background = Brushes.Transparent;
+        return row;
     }
 
     // ------------------------------------------------------------------ document
@@ -336,8 +394,7 @@ public partial class MainWindow : Window
     private void BeginHotkeyCapture(string which)
     {
         _capturing = which;
-        HotkeyMessage.Foreground = (Brush)FindResource("Accent");
-        HotkeyMessage.Text = "Pulsa la nueva combinación (por ejemplo Ctrl+Alt+R). Esc para cancelar.";
+        ShowHotkeyMessage("Accent", "Pulsa la nueva combinación (por ejemplo Ctrl+Alt+R). Esc para cancelar.");
         (which == "start" ? StartKeyText : StopKeyText).Text = "…";
         Focus();
     }
@@ -366,8 +423,7 @@ public partial class MainWindow : Window
         var gesture = HotkeyGesture.FromKey(key, Keyboard.Modifiers);
         if (!gesture.IsValid)
         {
-            HotkeyMessage.Foreground = (Brush)FindResource("Warning");
-            HotkeyMessage.Text = "El atajo debe incluir al menos Ctrl, Alt, Shift o Win.";
+            ShowHotkeyMessage("Warning", "El atajo debe incluir al menos Ctrl, Alt, Shift o Win.");
             StartKeyText.Text = _host.Settings.Current.StartHotkey;
             StopKeyText.Text = _host.Settings.Current.StopHotkey;
             return;
@@ -377,17 +433,21 @@ public partial class MainWindow : Window
         var stop = which == "stop" ? gesture.ToString() : _host.Settings.Current.StopHotkey;
         if (string.Equals(start, stop, StringComparison.OrdinalIgnoreCase))
         {
-            HotkeyMessage.Foreground = (Brush)FindResource("Warning");
-            HotkeyMessage.Text = "Los dos atajos tienen que ser distintos.";
             Refresh();
+            ShowHotkeyMessage("Warning", "Los dos atajos tienen que ser distintos.");
             return;
         }
 
         var problem = _host.TrySetHotkeys(start, stop);
-        HotkeyMessage.Foreground = (Brush)FindResource(problem is null ? "Success" : "Warning");
-        HotkeyMessage.Text = problem ?? $"Atajo actualizado: {gesture}";
         Refresh();
-        if (problem is not null) HotkeyMessage.Text = problem;
+        ShowHotkeyMessage(problem is null ? "Success" : "Warning", problem ?? $"Atajo actualizado: {gesture}");
+    }
+
+    private void ShowHotkeyMessage(string brushKey, string? text)
+    {
+        HotkeyMessage.Foreground = (Brush)FindResource(brushKey);
+        HotkeyMessage.Text = text ?? "";
+        HotkeyMessage.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
     }
 
     // ------------------------------------------------------------------ offline pack

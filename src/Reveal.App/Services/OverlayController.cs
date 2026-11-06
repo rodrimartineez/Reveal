@@ -26,6 +26,7 @@ internal sealed class OverlayController
     private readonly SpeechPlayer _speech;
     private readonly SettingsStore _settings;
     private readonly Action _openDocumentPicker;
+    private readonly LookupHistory _history;
     private readonly DispatcherTimer _autoClose = new();
 
     private CancellationTokenSource? _lookupCts;
@@ -41,8 +42,9 @@ internal sealed class OverlayController
 
     public OverlayController(
         Dispatcher dispatcher, OverlayWindow overlay, ToastWindow toast, LookupService lookup,
-        VocabularyService vocabulary, SpeechPlayer speech, SettingsStore settings, Action openDocumentPicker)
+        VocabularyService vocabulary, SpeechPlayer speech, SettingsStore settings, Action openDocumentPicker, LookupHistory history)
     {
+        _history = history;
         _dispatcher = dispatcher;
         _overlay = overlay;
         _toast = toast;
@@ -124,6 +126,7 @@ internal sealed class OverlayController
             Log.Info($"lookup {final.SourceLanguage}->{final.Status} in {sw.ElapsedMilliseconds} ms via {selection.Source}/{selection.ProcessName} engine={final.TranslationEngine}");
             if (final.Status == LookupStatus.Failed && string.IsNullOrWhiteSpace(final.Headword) && final.SourceText.Length == 0) return;
             ShowResult(final, present: true);
+            _history.Add(final);
             _ = AfterResultAsync(final, cts.Token);
         }
         catch (OperationCanceledException)
@@ -173,6 +176,7 @@ internal sealed class OverlayController
                     ? "Ya está en tu vocabulario"
                     : $"Sinónimo de {duplicate.Owner} en tu vocabulario";
                 _overlay.SetSaveState(SaveUiState.AlreadySaved, message);
+                _history.MarkSaved(result.Headword);
             });
         }
         catch (OperationCanceledException)
@@ -261,9 +265,11 @@ internal sealed class OverlayController
         {
             case SaveOutcome.Added:
                 _overlay.SetSaveState(SaveUiState.Saved, result.ViaWord ? "Añadida en Word" : "Guardada en tu vocabulario");
+                _history.MarkSaved(r.Headword);
                 break;
             case SaveOutcome.Duplicate:
                 _overlay.SetSaveState(SaveUiState.AlreadySaved, result.Message.TrimEnd('.'));
+                _history.MarkSaved(r.Headword);
                 break;
             case SaveOutcome.NoDocumentConfigured:
             case SaveOutcome.DocumentNotFound:
